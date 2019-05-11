@@ -1,15 +1,28 @@
 pipeline{
     agent any
     stages{
+        
+        stage ( ' Remove vm for LB ' ) {
+            
+            steps {
+                
+                sh '''
+                
+                ssh deployer-azure ' az network nic ip-config address-pool remove --resource-group loadbalancer --nic-name loadtest1722  --ip-config-name ipconfig1   --lb-name load --address-pool loadbackend '
+                
+                
+                '''
+                
+            }
+        }
      
      stage('copying files'){
          
          steps{
              sh '''
               
-              #!/bin/bash
               
-              ssh deployer-azure ' scp /home/ubuntu/config/*.yml scaleset_ls_3:/u/apps/live_status/shared/config '
+              ssh deployer-azure ' scp /home/ubuntu/config/*.yml scaleset_ls_5:/u/apps/live_status/shared/config '
             
       '''        
          }
@@ -24,7 +37,10 @@ pipeline{
                  
                  # ssh deployer-azure ' cd /u/apps/railyatri.live_status_5 && eval $(ssh-agent) && ssh-add && source ~/.rvm/scripts/rvm && cd /u/apps/railyatri.live_status_5 && cap production_ss3 deploy '
                   
-                  ssh scaleset_ls_4 ' cd /u/apps/live_status/current  && cap production_1 deploy '
+                #  ssh scaleset_ls_4 ' cd /u/apps/live_status/current  && cap production_1 deploy ' 
+                  
+                 ssh scaleset_ls_4  ' sh /home/ubuntu/script/passenger.sh '
+                  
                   
                   '''
                  
@@ -32,7 +48,7 @@ pipeline{
         
     }
     
-     stage (deploy){
+     stage (curl){
          
          steps {
              
@@ -46,21 +62,36 @@ pipeline{
          }
          
      }
+     
+        stage ( 'Add vm for LB' ) {
+            
+            steps {
+                
+                sh '''
+                
+                 ssh deployer-azure ' az network nic ip-config address-pool add  --resource-group loadbalancer  --nic-name loadtest1722  --ip-config-name ipconfig1 --lb-name load --address-pool loadbackend '
+                 
+                
+                '''
+                
+            }
+            
+        }
 
- stage (passenger status){
-
-         steps {
-
-             sh """
-
-        #     ssh deployer-azure ' cd /u/apps/railyatri.live_status_5 && cap production_ss3 deploy'
-
-                  ssh scaleset_ls_4 ' sudo passenger-status '
-
-                  """
-         }
-
-     }
+      stage (' passenger status '){
+          
+          steps {
+              
+              sh '''
+              
+              ssh scaleset_ls_4 ' sudo passenger-status '
+              
+              '''
+              
+          }
+          
+          
+      }
 
      
      stage ('mail') {
@@ -77,3 +108,4 @@ pipeline{
     }
     
 }
+
