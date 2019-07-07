@@ -1,0 +1,34 @@
+pipeline {
+  agent any
+  stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'l2-dev-docker-new', credentialsId: 'd335d2ed-a789-8d1b-6ad505656623', url: 'git@bitbucket.org:abcadmin/project.git'
+            }
+        }
+        stage ('pull code'){
+            steps {
+            sh """ 
+                #!/bin/bash
+                ssh ubuntu@IP 'sudo rm -r /home/ubuntu/project'
+                ssh ubuntu@IP 'cd /home/ubuntu/ && git clone git@bitbucket.org:abcadmin/project.git'
+                ssh ubuntu@IP 'cd /home/ubuntu/project/ && sudo git checkout l2-dev-docker-new'
+            """
+            }
+        }
+        stage ('docker-Build') {
+            steps {
+            sh """ 
+                ssh ubuntu@IP "docker build -t image:dev-l2-R.'$BUILD_NUMBER' /home/ubuntu/project/"
+            """
+            }
+	    } 
+        stage ('Run the Docker Container') {
+            steps {
+            sh """ 
+		    ssh ubuntu@IP "docker run -d -p 1227:1227/tcp -v licious2-dev-vol:/usr/src/app/log image:dev-l2-R.'$BUILD_NUMBER'"
+            """
+            }
+	    }
+    }
+}
